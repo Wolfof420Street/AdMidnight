@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Advertiser {
+  id          String   @id
+  role        String
+  status      String
+  displayName String?
+  createdAt   DateTime
+  updatedAt   DateTime
+}
+
+model Campaign {
+  id                  String   @id
+  advertiserId        String
+  segmentId           String   @unique
+  creativeId          String   @unique
+  segmentCentroid     String
+  similarityThreshold Float
+  targetCategories    String
+  title               String
+  description         String
+  imageUrl            String
+  clickUrl            String
+  advertiserName      String
+  budgetMidnight      String
+  cpmBidMidnight      String
+  startTime           DateTime
+  endTime             DateTime
+  status              String
+  midnightTxHash      String?
+  createdAt           DateTime
+  updatedAt           DateTime
+
+  @@index([advertiserId])
+  @@index([status, startTime, endTime])
+}
+
+model Bid {
+  id             String   @id
+  campaignId     String
+  advertiserId   String
+  commitmentHash String
+  actualBid      String?
+  nonce          String?
+  revealedAt     DateTime?
+  won            Boolean?
+  createdAt      DateTime
+  updatedAt      DateTime
+
+  @@unique([campaignId, advertiserId])
+  @@index([campaignId])
+  @@index([advertiserId])
+}
+
+model ProofRecord {
+  nullifier       String   @id
+  campaignId      String
+  segmentId       String
+  proofHash       String
+  publicInputHash String
+  isMatch         Boolean
+  relayTxHash     String?
+  createdAt       DateTime
+
+  @@index([campaignId])
+  @@index([campaignId, isMatch])
+}
+
+model RewardClaim {
+  nullifier      String   @id
+  campaignId     String
+  amountMidnight String
+  claimTxHash    String?
+  status         String
+  createdAt      DateTime
+  updatedAt      DateTime
+
+  @@index([campaignId])
+  @@index([status, createdAt])
+}
+
+model PublisherImpression {
+  id             String   @id
+  slotId         String
+  nullifier      String   @unique
+  proofHash      String
+  payoutMidnight String
+  createdAt      DateTime
+
+  @@index([slotId])
+  @@index([createdAt])
+}

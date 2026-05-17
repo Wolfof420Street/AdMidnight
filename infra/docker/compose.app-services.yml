@@ -1,0 +1,80 @@
+# Application services: Redis, Postgres, AdMidnight API
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: admidnight-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admidnight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-admidnight}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admidnight}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: admidnight-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    container_name: admidnight-api
+    env_file: ../../.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admidnight}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-admidnight}
+      - REDIS_URL=redis://redis:6379
+      - MIDNIGHT_INDEXER_GRAPHQL_URL=http://indexer:8088/api/v4/graphql
+      - MIDNIGHT_INDEXER_WS_URL=ws://indexer:8088/api/v4/graphql/ws
+      - MIDNIGHT_PROOF_SERVER_URL=http://proof-server:6300
+      - MIDNIGHT_NODE_URL=ws://midnight-node:9944
+    ports:
+      - "${API_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      midnight-node:
+        condition: service_started
+      proof-server:
+        condition: service_started
+      indexer:
+        condition: service_started
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ../.. 
+      dockerfile: apps/advertiser-dashboard/Dockerfile
+    container_name: admidnight-dashboard
+    env_file: ../../.env
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

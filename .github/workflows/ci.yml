@@ -1,0 +1,38 @@
+name: AdMidnight CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_VERSION: '24'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn install --immutable
+
+      - name: Build shared foundations
+        run: yarn turbo run build --filter=@admidnight/shared --filter=@admidnight/midnight-sdk-wrapper
+
+      - name: Type-check monorepo
+        run: yarn turbo run type-check
+
+      - name: Run monorepo tests
+        run: yarn turbo run test

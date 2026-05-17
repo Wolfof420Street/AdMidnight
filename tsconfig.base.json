@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@admidnight/shared": ["packages/shared/src/index.ts"],
+      "@admidnight/shared/*": ["packages/shared/src/*"],
+      "@admidnight/zk-circuits": ["packages/zk-circuits/src/index.ts"],
+      "@admidnight/zk-circuits/*": ["packages/zk-circuits/src/*"]
+    }
+  }
+}
+

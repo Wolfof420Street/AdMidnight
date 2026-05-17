@@ -1,0 +1,17 @@
+# Proof Server service — generates zero-knowledge proofs
+version: '3.9'
+
+services:
+  proof-server:
+    image: bricktowers/proof-server:7.0.0
+    container_name: admidnight-proof-server
+    ports:
+      - "6300:6300"
+    environment:
+      - NETWORK_ID=${CFG_PRESET:-undeployed}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "midnight-proof-server", "--help"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

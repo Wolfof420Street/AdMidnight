@@ -1,0 +1,78 @@
+pragma language_version >= 0.16 && <= 0.21;
+
+import CompactStandardLibrary;
+
+pure circuit AUCTION_OPEN(): Uint<8> {
+  return 0 as Uint<8>;
+}
+
+pure circuit AUCTION_CLOSED(): Uint<8> {
+  return 1 as Uint<8>;
+}
+
+pure circuit AUCTION_SETTLED(): Uint<8> {
+  return 2 as Uint<8>;
+}
+
+export ledger AdAuction {
+  auctionState: Map<Bytes<32>, Uint<8>>;
+  bidCommitments: Map<Bytes<32>, Bytes<32>>;
+  winners: Map<Bytes<32>, WinnerRecord>;
+  campaignBudgets: Map<Bytes<32>, Uint<64>>;
+  protocolBalance: Uint<64>;
+}
+
+struct WinnerRecord {
+  advertiserId: Bytes<32>,
+  winningBid: Uint<64>,
+  settledAt: Uint<64>,
+}
+
+export circuit commitBid(
+  advertiserId: Bytes<32>,
+  campaignId: Bytes<32>,
+  commitment: Bytes<32>
+): [] {
+  assert disclose(AdAuction.auctionState[campaignId]) == AUCTION_OPEN();
+  AdAuction.bidCommitments[persistentHash<Bytes<32>>([
+    bytesToField(advertiserId),
+    bytesToField(campaignId)
+  ])] = commitment;
+}
+
+export circuit lockBudget(
+  campaignId: Bytes<32>,
+  budget: Uint<64>
+): [] {
+  AdAuction.campaignBudgets[campaignId] = budget;
+  AdAuction.auctionState[campaignId] = AUCTION_OPEN();
+}
+
+export circuit closeBidding(
+  campaignId: Bytes<32>
+): [] {
+  assert disclose(AdAuction.auctionState[campaignId]) == AUCTION_OPEN();
+  AdAuction.auctionState[campaignId] = AUCTION_CLOSED();
+}
+
+export circuit settleAuction(
+  campaignId: Bytes<32>,
+  winnerId: Bytes<32>,
+  priceToPay: Uint<64>,
+  impressionProofNullifier: Bytes<32>
+): [] {
+  assert disclose(AdAuction.auctionState[campaignId]) == AUCTION_CLOSED();
+  assert impressionProofNullifier != (0 as Bytes<32>);
+  // Fee: 10% = priceToPay * 10 / 100. Compute via witness to avoid division operator.
+  const feeNumerator: Uint<64> = priceToPay * (10 as Uint<64>);
+  const protocolFee: Uint<64> = feeNumerator / (100 as Uint<64>);
+
+  AdAuction.winners[campaignId] = WinnerRecord {
+    advertiserId: winnerId,
+    winningBid: disclose(priceToPay),
+    settledAt: disclose(0 as Uint<64>),
+  };
+
+  AdAuction.protocolBalance = AdAuction.protocolBalance + protocolFee;
+  AdAuction.auctionState[campaignId] = AUCTION_SETTLED();
+}

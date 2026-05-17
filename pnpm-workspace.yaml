@@ -1,0 +1,11 @@
+packages:
+  - 'apps/api'
+  - 'apps/advertiser-dashboard'
+  - 'packages/shared'
+  - 'packages/midnight-sdk-wrapper'
+  - 'packages/zk-circuits'
+
+shared:
+  hoist: []
+
+preferWorkspacePackages: true

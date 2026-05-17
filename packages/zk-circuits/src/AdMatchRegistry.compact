@@ -1,0 +1,54 @@
+pragma language_version >= 0.16 && <= 0.21;
+
+import CompactStandardLibrary;
+
+export ledger MatchRegistry {
+  campaignImpressions: Map<Bytes<32>, Uint<64>>;
+  claimedNullifiers: Set<Bytes<32>>;
+  registeredSegments: Map<Bytes<32>, SegmentConfig>;
+  totalImpressions: Uint<64>;
+}
+
+struct SegmentConfig {
+  campaignId: Bytes<32>,
+  threshold: Field,
+  segmentCommitment: Bytes<32>,
+  active: Boolean,
+}
+
+export circuit registerSegment(
+  segmentId: Bytes<32>,
+  campaignId: Bytes<32>,
+  threshold: Field,
+  segmentCommitment: Bytes<32>
+): [] {
+  MatchRegistry.registeredSegments[segmentId] = SegmentConfig {
+    campaignId: campaignId,
+    threshold: threshold,
+    segmentCommitment: segmentCommitment,
+    active: true,
+  };
+}
+
+export circuit proveSegmentMatch(
+  segmentId: Bytes<32>,
+  campaignId: Bytes<32>,
+  nullifier: Bytes<32>,
+  proofCommitment: Bytes<32>
+): [] {
+  const config = MatchRegistry.registeredSegments[segmentId];
+  assert config.active == true;
+  assert config.campaignId == campaignId;
+  assert proofCommitment != (0 as Bytes<32>);
+  assert disclose(MatchRegistry.claimedNullifiers.member(nullifier)) == false;
+
+  MatchRegistry.claimedNullifiers.insert(nullifier);
+  MatchRegistry.campaignImpressions[campaignId] =
+    MatchRegistry.campaignImpressions[campaignId] + (1 as Uint<64>);
+  MatchRegistry.totalImpressions =
+    MatchRegistry.totalImpressions + (1 as Uint<64>);
+}
+
+export circuit getImpressionCount(campaignId: Bytes<32>): Uint<64> {
+  return disclose(MatchRegistry.campaignImpressions[campaignId]);
+}

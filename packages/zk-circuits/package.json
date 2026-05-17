@@ -1,0 +1,21 @@
+{
+  "name": "@admidnight/zk-circuits",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "make compile",
+    "compile": "make compile",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "make clean",
+    "deploy": "node scripts/deploy-run.js",
+    "deploy:prod": "NETWORK=production node scripts/deploy-prod-run.js",
+    "type-check": "echo 'Compact files have no TS type-check'"
+  },
+  "devDependencies": {
+    "@midnight-ntwrk/testkit-js": "^4.0.4",
+    "@midnight-ntwrk/midnight-js-types": "^4.0.4",
+    "@midnight-ntwrk/midnight-js-utils": "^4.0.4",
+    "@midnight-ntwrk/midnight-js-network-id": "^4.0.4",
+    "vitest": "^3.1.3"
+  }
+}

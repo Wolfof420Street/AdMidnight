@@ -1,0 +1,35 @@
+# Midnight Node service (RPC endpoint for contracts and proofs)
+version: '3.9'
+
+services:
+  midnight-node:
+    image: midnightntwrk/midnight-node:0.22.5
+    container_name: admidnight-node
+    environment:
+      - CFG_PRESET=${CFG_PRESET:-undeployed}
+      - HOME_IPC=${HOME:-/root}/ipc
+      - db_sync_postgres_connection_string=postgresql://${POSTGRES_USER:-admidnight}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-admidnight}
+      - allow_non_ssl=true
+      - use_main_chain_follower_mock=true
+      - mock_registrations_file=/mock/mock-registrations.json
+      - append_args=--rpc-external --rpc-methods=unsafe
+    volumes:
+      - midnight_data:/data
+      - ${HOME:-/root}/ipc:/ipc
+      - ./mock-registrations.json:/mock/mock-registrations.json:ro
+    ports:
+      - "9944:9944"     # WebSocket RPC (preferred)
+      - "9933:9933"     # HTTP RPC
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9615/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  midnight_data:

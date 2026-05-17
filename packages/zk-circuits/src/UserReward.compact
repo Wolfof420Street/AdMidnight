@@ -1,0 +1,31 @@
+pragma language_version >= 0.16 && <= 0.21;
+
+import CompactStandardLibrary;
+
+export ledger UserReward {
+  pendingRewards: Map<Bytes<32>, Uint<64>>;
+  spentNullifiers: Set<Bytes<32>>;
+  totalRewarded: Uint<64>;
+}
+
+export circuit escrowReward(
+  nullifier: Bytes<32>,
+  amount: Uint<64>
+): [] {
+  assert disclose(UserReward.spentNullifiers.member(nullifier)) == false;
+  UserReward.pendingRewards[nullifier] = amount;
+}
+
+export circuit claimReward(
+  nullifier: Bytes<32>,
+  claimCommitment: Bytes<32>
+): Uint<64> {
+  assert claimCommitment != (0 as Bytes<32>);
+  assert disclose(UserReward.spentNullifiers.member(nullifier)) == false;
+
+  const amount = UserReward.pendingRewards[nullifier];
+  UserReward.spentNullifiers.insert(nullifier);
+  UserReward.totalRewarded = UserReward.totalRewarded + amount;
+
+  return disclose(amount);
+}

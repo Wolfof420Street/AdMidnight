@@ -1,0 +1,38 @@
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**","packages/**/managed/**"]
+    },
+    "dev": {
+      "cache": false
+    },
+    "test": {},
+    "compile:contracts": {
+      "dependsOn": []
+    }
+  }
+}
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "managed/**"]
+    },
+    "compile:contracts": {
+      "outputs": ["managed/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": { "outputs": [] },
+    "type-check": { "outputs": [] }
+  }
+}

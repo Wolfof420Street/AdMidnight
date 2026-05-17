@@ -1,0 +1,83 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.log
+
+# Dependencies and package manager caches
+node_modules/
+**/node_modules/
+.yarn/cache/
+.yarn/install-state.gz
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Build outputs and caches
+dist/
+**/dist/
+build/
+**/build/
+.turbo/
+**/.turbo/
+.next/
+**/.next/
+.dart_tool/
+**/.dart_tool/
+.gradle/
+**/.gradle/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Flutter / Android / iOS generated files
+**/ios/Pods/
+**/ios/DerivedData/
+**/ios/Flutter/ephemeral/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/captures/
+**/android/local.properties
+**/*.iml
+**/*.class
+**/*.keystore
+**/*.jks
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/.packages
+
+# Generated repo docs and handoff artifacts
+/AUDIT.md
+/DEMO_SCRIPT.md
+/DEVPOST_SUBMISSION.md
+/PHASE*_SUMMARY.md
+/PHASE*_AUDIT_REPORT.md
+/QUICK_START.md
+/STATUS.md
+/TEST_EXECUTION_GUIDE.md
+
+# Build outputs
+packages/zk-circuits/managed/   # compiled contract artifacts — don't commit
+
+# Midnight node (from midnight-node-docker .gitignore)
+midnight-node.privatekey  # auto-generated private key — NEVER commit
+cardano-data/
+~/ipc/
+
+# Database
+*.sqlite
+
+# Environment
+.env.contracts          # output of deploy.mts — contains contract addresses
+.env.local
+
+# Misc local-only files
+.mcp-discovery.json
+.docker-nocreds/
+

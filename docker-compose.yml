@@ -1,0 +1,12 @@
+# Top-level compose that glues all services together
+# Usage:
+#   Full stack:   docker compose up -d
+#   Without node: docker compose --profile app up -d
+version: '3.9'
+
+include:
+  - path: infra/docker/compose.midnight-node.yml
+  - path: infra/docker/compose.proof-server.yml
+  - path: infra/docker/compose.indexer.yml
+  - path: infra/docker/compose.app-services.yml
+
