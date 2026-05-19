@@ -6,7 +6,7 @@
 import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import { Subject, type Observable } from 'rxjs';
-import type { DomainEventBus } from './domain-event.bus.js';
+import { DomainEventBus } from './domain-event.bus.js';
 import type { ProofRelayedEvent, AuctionSettledEvent } from '@admidnight/shared';
 
 export interface SseEvent {

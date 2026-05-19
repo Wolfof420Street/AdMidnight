@@ -12,7 +12,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RoleGuard } from '../../common/guards/role.guard';
 import type { RegisterImpressionRequestDto } from './dto/register-impression.request.dto';
-import type { PublisherService } from './publisher.service';
+import { PublisherService } from './publisher.service';
 
 @ApiTags('publisher')
 @Roles('publisher')

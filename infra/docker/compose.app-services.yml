@@ -38,7 +38,9 @@ services:
       context: ../..
       dockerfile: apps/api/Dockerfile
     container_name: admidnight-api
-    env_file: ../../.env
+    env_file:
+      - ../../.env
+      - ../../.env.local
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admidnight}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-admidnight}
       - REDIS_URL=redis://redis:6379
@@ -66,9 +68,11 @@ services:
       context: ../.. 
       dockerfile: apps/advertiser-dashboard/Dockerfile
     container_name: admidnight-dashboard
-    env_file: ../../.env
+    env_file:
+      - ../../.env
+      - ../../.env.local
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
     ports:
       - "3000:3000"
     depends_on:

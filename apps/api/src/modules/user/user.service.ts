@@ -1,13 +1,19 @@
-import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import {
   type CampaignResponseDto,
   type ProofVerificationResponseDto,
   type RewardClaimResponseDto,
 } from '@admidnight/shared';
-import type { MidnightGateway } from '../midnight/midnight.gateway';
-import type { CampaignRepository } from '../persistence/repositories/campaign.repository';
-import type { ProofRepository } from '../persistence/repositories/proof.repository';
-import type { RewardRepository } from '../persistence/repositories/reward.repository';
+import { MidnightGateway } from '../midnight/midnight.gateway';
+import { CampaignRepository } from '../persistence/repositories/campaign.repository';
+import { ProofRepository } from '../persistence/repositories/proof.repository';
+import { RewardRepository } from '../persistence/repositories/reward.repository';
 import type { ClaimRewardRequestDto } from './dto/claim-reward.request.dto';
 import type { SubmitMatchProofRequestDto } from './dto/submit-match-proof.request.dto';
 import { ProofMapper } from './mappers/proof.mapper';
@@ -32,8 +38,19 @@ export class UserService {
     );
 
     if (alreadyUsed) {
-      this.logger.warn('Duplicate nullifier attempt rejected');
-      return { valid: false, campaignId: '', rewardEscrow: '' };
+      this.logger.warn('Duplicate nullifier replay accepted idempotently');
+      const existingProof = await this.proofRepository.findByNullifier(
+        proof.publicInputs.nullifier,
+      );
+      if (!existingProof) {
+        throw new ServiceUnavailableException('Existing proof record missing for replayed nullifier');
+      }
+
+      return {
+        valid: existingProof.isMatch,
+        campaignId: existingProof.campaignId,
+        rewardEscrow: existingProof.nullifier,
+      };
     }
 
     const relay = await this.midnightGateway.submitMatchProof(proof);
@@ -78,6 +95,10 @@ export class UserService {
   async claimReward(dto: ClaimRewardRequestDto): Promise<RewardClaimResponseDto> {
     const pending = await this.rewardRepository.findPending(dto.nullifier);
     if (!pending) {
+      const existing = await this.rewardRepository.findByNullifier(dto.nullifier);
+      if (existing?.status === 'CLAIMED') {
+        throw new ConflictException('Reward already claimed');
+      }
       throw new NotFoundException('No pending reward found for the provided nullifier');
     }
 

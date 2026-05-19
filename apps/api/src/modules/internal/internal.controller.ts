@@ -11,7 +11,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RoleGuard } from '../../common/guards/role.guard';
 import type { ValidateProofRequestDto } from './dto/validate-proof.request.dto';
-import type { InternalService } from './internal.service';
+import { InternalService } from './internal.service';
 
 @ApiTags('internal')
 @Roles('internal')

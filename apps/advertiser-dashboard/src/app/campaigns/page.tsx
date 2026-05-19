@@ -1,97 +1,106 @@
 import Link from 'next/link';
-import { campaignsApi } from '@/lib/api/campaigns.api';
+import { redirect } from 'next/navigation';
 import type { CampaignResponseDto } from '@admidnight/shared';
+import { DashboardApiError, serverApiClient } from '@/lib/api-client';
+
+type CampaignRow = {
+  campaign: CampaignResponseDto;
+  analytics: {
+    impressions: number;
+    estimatedCtr: number;
+    totalSpend: string;
+  };
+};
+
+function statusClasses(status: string): string {
+  if (status === 'ACTIVE') {
+    return 'bg-green-500/15 text-green-300';
+  }
+  if (status === 'PAUSED') {
+    return 'bg-amber-500/15 text-amber-300';
+  }
+  return 'bg-slate-500/15 text-slate-300';
+}
 
 export default async function CampaignsPage() {
-  let campaigns: CampaignResponseDto[] = [];
-  let error: string | null = null;
+  const api = await serverApiClient();
 
   try {
-    campaigns = await campaignsApi.list();
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Failed to load campaigns';
-  }
+    const campaigns = await api.listCampaigns();
+    const rows = await Promise.all(
+      campaigns.map(async (campaign): Promise<CampaignRow> => ({
+        campaign,
+        analytics: await api.getAnalytics(campaign.id),
+      })),
+    );
 
-  return (
-    <main className="min-h-screen bg-[var(--color-midnight)] px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Campaigns</h1>
-            <p className="mt-2 text-gray-400">Manage your advertising campaigns</p>
-          </div>
-          <Link
-            href="/campaigns/new"
-            className="rounded-xl bg-[var(--color-accent)] px-6 py-3 font-semibold text-[var(--color-midnight)] transition-colors hover:bg-[var(--color-accent-dim)]"
-          >
-            New Campaign
-          </Link>
-        </div>
-
-        {error ? (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-            {error}
-          </div>
-        ) : campaigns.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-black/30 p-8 text-center">
-            <p className="text-gray-400">No campaigns yet</p>
+    return (
+      <main className="min-h-screen bg-[var(--color-midnight)] px-6 py-12">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Campaigns</h1>
+              <p className="mt-2 text-sm text-gray-400">
+                Live advertiser campaigns backed by the running API.
+              </p>
+            </div>
             <Link
               href="/campaigns/new"
-              className="mt-4 inline-block text-[var(--color-accent)] hover:underline"
+              className="rounded-xl bg-[var(--color-accent)] px-5 py-3 font-semibold text-[var(--color-midnight)]"
             >
-              Create your first campaign
+              New Campaign
             </Link>
           </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
-            <table className="w-full">
-              <thead className="border-b border-white/10 bg-black/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Title</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Budget</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Created</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id} className="border-b border-white/10 hover:bg-black/40">
-                    <td className="px-6 py-4">
-                      <span className="font-medium">{campaign.title}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-                          campaign.status === 'ACTIVE'
-                            ? 'bg-green-500/20 text-green-300'
-                            : campaign.status === 'PAUSED'
-                              ? 'bg-yellow-500/20 text-yellow-300'
-                              : 'bg-gray-500/20 text-gray-300'
-                        }`}
-                      >
-                        {campaign.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">{campaign.budgetMidnight} MIDNIGHT</td>
-                    <td className="px-6 py-4 text-sm text-gray-400">
-                      {new Date(campaign.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/campaigns/${campaign.id}`}
-                        className="text-[var(--color-accent)] hover:underline"
-                      >
-                        View
-                      </Link>
-                    </td>
+
+          {rows.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-10 text-center">
+              <p className="text-lg font-semibold">No campaigns yet</p>
+              <Link
+                href="/campaigns/new"
+                className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline"
+              >
+                Create a campaign
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+              <table className="w-full text-left">
+                <thead className="bg-black/40 text-sm text-gray-300">
+                  <tr>
+                    <th className="px-6 py-4">Campaign</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Impressions</th>
+                    <th className="px-6 py-4">Spend</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </main>
-  );
+                </thead>
+                <tbody>
+                  {rows.map(({ campaign, analytics }) => (
+                    <tr key={campaign.id} className="border-t border-white/10 text-sm">
+                      <td className="px-6 py-4">
+                        <Link href={`/campaigns/${campaign.id}`} className="font-semibold hover:underline">
+                          {campaign.creative.title}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClasses(campaign.status)}`}>
+                          {campaign.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">{analytics.impressions}</td>
+                      <td className="px-6 py-4">{analytics.totalSpend}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  } catch (error) {
+    if (error instanceof DashboardApiError) {
+      redirect('/login');
+    }
+    throw error;
+  }
 }

@@ -4,11 +4,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+set -a
+if [ -f "$ROOT_DIR/.env" ]; then
+  source "$ROOT_DIR/.env"
+fi
+if [ -f "$ROOT_DIR/.env.local" ]; then
+  source "$ROOT_DIR/.env.local"
+fi
+set +a
+
 echo "[AdMidnight] Starting local dev stack..."
 echo "[AdMidnight] Generating INDEXER_SECRET if not set..."
 
-# Auto-generate INDEXER_SECRET if missing (local dev only)
-if [ -z "${INDEXER_SECRET:-}" ]; then
+export INDEXER_NETWORK_ID=undeployed
+
+# Auto-generate INDEXER_SECRET if missing or still set to a numeric placeholder (local dev only)
+if [ -z "${INDEXER_SECRET:-}" ] || [[ "${INDEXER_SECRET}" =~ ^[0-9]+$ ]]; then
   export INDEXER_SECRET=$(openssl rand -hex 32)
   echo "INDEXER_SECRET=$INDEXER_SECRET" >> "$ROOT_DIR/.env"
   echo "[AdMidnight] Generated INDEXER_SECRET and saved to .env"

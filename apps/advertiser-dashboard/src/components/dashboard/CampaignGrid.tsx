@@ -2,16 +2,16 @@
 
 import { useMemo } from 'react';
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
+import type { CampaignResponseDto } from '@admidnight/shared';
 
-interface Campaign {
+type CampaignCardViewModel = {
   id: string;
   name: string;
-  status: 'ACTIVE' | 'DRAFT' | 'COMPLETED';
-  impressions: number;
+  status: 'ACTIVE' | 'DRAFT' | 'COMPLETED' | 'PAUSED' | 'SETTLED';
   budget: string;
-  segment: string;
-  matchRate: number;
-}
+  segments: string[];
+  similarityThreshold: number;
+};
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-green-400/10 text-green-400 border-green-400/30',
@@ -36,15 +36,7 @@ export function CampaignGrid(): JSX.Element {
         {campaigns.map((campaign) => (
           <CampaignCard
             key={campaign.id}
-            campaign={{
-              id: campaign.id,
-              name: campaign.name,
-              status: campaign.status as Campaign['status'],
-              impressions: campaign.impressions ?? 0,
-              budget: campaign.budget ?? '—',
-              segment: campaign.segment ?? '—',
-              matchRate: campaign.matchRate ?? 0,
-            }}
+            campaign={toCardViewModel(campaign)}
           />
         ))}
       </div>
@@ -54,7 +46,7 @@ export function CampaignGrid(): JSX.Element {
   return <>{content}</>;
 }
 
-function CampaignCard({ campaign }: { campaign: Campaign }): JSX.Element {
+function CampaignCard({ campaign }: { campaign: CampaignCardViewModel }): JSX.Element {
   return (
     <article className="bg-[var(--color-midnight-card)] rounded-2xl p-6 border border-white/5 hover:border-[var(--color-accent)]/30 transition-all duration-300 group">
       <div className="flex items-start justify-between mb-4">
@@ -72,26 +64,23 @@ function CampaignCard({ campaign }: { campaign: Campaign }): JSX.Element {
       </div>
 
       <div className="mb-4">
-        <span className="text-xs px-2 py-1 rounded bg-[var(--color-proof)]/10 text-[var(--color-proof)] font-mono">
-          {campaign.segment}
-        </span>
+        {campaign.segments.map((segment) => (
+          <span
+            key={segment}
+            className="mr-1 text-xs px-2 py-1 rounded bg-[var(--color-proof)]/10 text-[var(--color-proof)] font-mono"
+          >
+            {segment}
+          </span>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div>
           <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-            ZK Impressions
-          </div>
-          <div className="text-lg font-bold data-value text-[var(--color-accent)]">
-            {campaign.impressions.toLocaleString()}
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-            Match Rate
+            ZK Threshold
           </div>
           <div className="text-lg font-bold data-value text-white">
-            {campaign.matchRate > 0 ? `${campaign.matchRate}%` : '—'}
+            {campaign.similarityThreshold}
           </div>
         </div>
         <div className="col-span-2">
@@ -108,3 +97,13 @@ function CampaignCard({ campaign }: { campaign: Campaign }): JSX.Element {
   );
 }
 
+function toCardViewModel(campaign: CampaignResponseDto): CampaignCardViewModel {
+  return {
+    id: campaign.id,
+    name: campaign.creative.title,
+    status: campaign.status as CampaignCardViewModel['status'],
+    budget: campaign.budgetMidnight,
+    segments: campaign.segment.targetCategories,
+    similarityThreshold: campaign.segment.similarityThreshold,
+  };
+}

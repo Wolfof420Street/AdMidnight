@@ -6,15 +6,15 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@admidnight/shared": ["../../packages/shared/dist/index.js"],
-      "@admidnight/midnight-sdk-wrapper": ["../../packages/midnight-sdk-wrapper/dist/index.js"]
+      "@admidnight/shared": ["../../packages/shared/dist/index.d.ts"],
+      "@admidnight/shared/*": ["../../packages/shared/dist/*"],
+      "@admidnight/midnight-sdk-wrapper": ["../../packages/midnight-sdk-wrapper/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",
-    "src/config.ts",
     "src/repositories/**/*",
     "src/services/**/*",
     "src/**/*.spec.ts",

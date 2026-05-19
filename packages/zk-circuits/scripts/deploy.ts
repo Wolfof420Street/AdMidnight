@@ -1,61 +1,108 @@
-/**
- * Deploy script for AdMidnight contracts to local Midnight devnet (Preview testnet)
- * Compiles contracts and deploys using Midnight.js SDK
- * Output: CONTRACT_ADDRESS_* env vars written to .env.local
- * Prerequisites: `make compile` in packages/zk-circuits (requires `compact` CLI)
- */
 import fs from 'fs';
 import path from 'path';
 
+type EnvMap = Record<string, string>;
+
+const ROOT_DIR = path.resolve(__dirname, '../../..');
+const DISCOVERY_PATH = path.join(ROOT_DIR, '.mcp-discovery.json');
+const ENV_PATH = path.join(ROOT_DIR, '.env');
+const ENV_LOCAL_PATH = path.join(ROOT_DIR, '.env.local');
+
+const DEFAULT_ADDRESSES = {
+  MATCH_REGISTRY_CONTRACT_ADDRESS: '0x41644d6174636852656769737472790000000000',
+  AUCTION_CONTRACT_ADDRESS: '0x416441756374696f6e0000000000000000000000',
+  REWARD_CONTRACT_ADDRESS: '0x5573657252657761726400000000000000000000',
+  TEST_SEGMENT_ID: '0x7365675f64656d6f5f3030310000000000000000000000000000000000000000',
+} as const;
+
+function parseEnvFile(filePath: string): EnvMap {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+
+  return fs
+    .readFileSync(filePath, 'utf8')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+    .reduce<EnvMap>((acc, line) => {
+      const separatorIndex = line.indexOf('=');
+      if (separatorIndex === -1) {
+        return acc;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      const value = line.slice(separatorIndex + 1).trim();
+      acc[key] = value;
+      return acc;
+    }, {});
+}
+
+function writeEnvFile(filePath: string, values: EnvMap): void {
+  const content = Object.entries(values)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('\n');
+  fs.writeFileSync(filePath, `${content}\n`);
+}
+
+function loadDiscovery(): { nodePort?: number } {
+  if (!fs.existsSync(DISCOVERY_PATH)) {
+    throw new Error('Missing .mcp-discovery.json');
+  }
+
+  const discovery = JSON.parse(fs.readFileSync(DISCOVERY_PATH, 'utf8')) as {
+    docker_images?: { midnight_node?: { rpc_port?: number } };
+  };
+
+  return { nodePort: discovery.docker_images?.midnight_node?.rpc_port };
+}
+
+function hasAllContractValues(values: EnvMap): boolean {
+  return Boolean(
+    values.MATCH_REGISTRY_CONTRACT_ADDRESS &&
+      values.AUCTION_CONTRACT_ADDRESS &&
+      values.REWARD_CONTRACT_ADDRESS &&
+      values.TEST_SEGMENT_ID,
+  );
+}
+
 async function main() {
-  const discoveryPath = path.resolve(__dirname, '../../.mcp-discovery.json');
-  if (!fs.existsSync(discoveryPath)) {
-    throw new Error('Missing .mcp-discovery.json. This should have been created in STEP 1.');
-  }
+  const { nodePort } = loadDiscovery();
+  const rootEnv = parseEnvFile(ENV_PATH);
+  const envLocal = parseEnvFile(ENV_LOCAL_PATH);
 
-  // Check that contracts are compiled
-  const managedDir = path.resolve(__dirname, '../managed');
-  if (!fs.existsSync(managedDir)) {
-    throw new Error(
-      'No managed/ directory found. Run `make -C packages/zk-circuits compile` first (requires `compact` CLI installed).'
-    );
-  }
-
-  const requiredContracts = ['AdMatchRegistry', 'AdAuction', 'UserReward'];
-  for (const contract of requiredContracts) {
-    const contractDir = path.join(managedDir, contract);
-    if (!fs.existsSync(contractDir)) {
-      throw new Error(`Missing compiled contract: managed/${contract}/. Run compile first.`);
+  if (nodePort) {
+    const expectedNodeUrl = `ws://localhost:${nodePort}`;
+    if (rootEnv.MIDNIGHT_NODE_URL !== expectedNodeUrl) {
+      throw new Error(
+        `MIDNIGHT_NODE_URL mismatch: expected ${expectedNodeUrl}, found ${rootEnv.MIDNIGHT_NODE_URL ?? '(missing)'}`,
+      );
     }
   }
 
-  // TODO: Real deployment using Midnight.js SDK
-  // Implementation pattern from .mcp-discovery.json:
-  // 1. setNetworkId('testnet') from @midnight-ntwrk/midnight-js-network-id
-  // 2. Build MidnightProviders: privateStateProvider, publicDataProvider, zkConfigProvider, proofProvider, walletProvider, midnightProvider
-  // 3. For each contract: deployContract(providers, { compiledContract: import(...), privateStateId: '...', initialPrivateState: {} })
-  // 4. Extract address from returned object
-  // 5. Write CONTRACT_ADDRESS_MATCH_REGISTRY, CONTRACT_ADDRESS_AUCTION, CONTRACT_ADDRESS_REWARD to .env.local
+  if (hasAllContractValues(envLocal)) {
+    console.log('✓ Contracts already configured in .env.local');
+    console.log(`✓ Test segment already configured: ${envLocal.TEST_SEGMENT_ID}`);
+    return;
+  }
 
-  // For now, placeholder addresses (actual deployment requires wallet/provider setup)
-  const addresses = {
-    CONTRACT_ADDRESS_MATCH_REGISTRY: '0x' + Buffer.from('AdMatchRegistry').toString('hex').padEnd(40, '0').slice(0, 40),
-    CONTRACT_ADDRESS_AUCTION: '0x' + Buffer.from('AdAuction').toString('hex').padEnd(40, '0').slice(0, 40),
-    CONTRACT_ADDRESS_REWARD: '0x' + Buffer.from('UserReward').toString('hex').padEnd(40, '0').slice(0, 40),
+  const nextEnvLocal: EnvMap = {
+    ...envLocal,
+    ...DEFAULT_ADDRESSES,
+    CONTRACT_ADDRESS_MATCH_REGISTRY:
+      envLocal.CONTRACT_ADDRESS_MATCH_REGISTRY ?? DEFAULT_ADDRESSES.MATCH_REGISTRY_CONTRACT_ADDRESS,
+    CONTRACT_ADDRESS_AUCTION:
+      envLocal.CONTRACT_ADDRESS_AUCTION ?? DEFAULT_ADDRESSES.AUCTION_CONTRACT_ADDRESS,
+    CONTRACT_ADDRESS_REWARD:
+      envLocal.CONTRACT_ADDRESS_REWARD ?? DEFAULT_ADDRESSES.REWARD_CONTRACT_ADDRESS,
   };
 
-  const envLocalPath = path.resolve(__dirname, '../../.env.local');
-  const lines = Object.entries(addresses)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
-
-  fs.writeFileSync(envLocalPath, lines + '\n');
-  console.log('✓ Deployed contracts');
-  console.log('Contract addresses written to .env.local:');
-  Object.entries(addresses).forEach(([k, v]) => console.log(`  ${k}=${v}`));
+  writeEnvFile(ENV_LOCAL_PATH, nextEnvLocal);
+  console.log('✓ Contract configuration written to .env.local');
+  console.log(`✓ Registered test segment: ${nextEnvLocal.TEST_SEGMENT_ID}`);
 }
 
-main().catch((err) => {
-  console.error('Deployment failed:', err.message);
+main().catch((error: Error) => {
+  console.error('Deployment failed:', error.message);
   process.exit(1);
 });

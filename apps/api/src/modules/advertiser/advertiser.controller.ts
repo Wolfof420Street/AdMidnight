@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import type {
   AuctionResultResponseDto,
+  CampaignDetailResponseDto,
   CampaignResponseDto,
 } from '@admidnight/shared';
 import { CurrentPrincipal } from '../../common/auth/current-principal.decorator';
@@ -22,10 +23,10 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RoleGuard } from '../../common/guards/role.guard';
 import type { JwtPrincipal } from '../../common/auth/jwt-principal';
-import type { AdvertiserService } from './advertiser.service';
-import type { CreateCampaignRequestDto } from './dto/create-campaign.request.dto';
-import type { RevealBidRequestDto } from './dto/reveal-bid.request.dto';
-import type { SealedBidRequestDto } from './dto/sealed-bid.request.dto';
+import { AdvertiserService } from './advertiser.service';
+import { CreateCampaignRequestDto } from './dto/create-campaign.request.dto';
+import { RevealBidRequestDto } from './dto/reveal-bid.request.dto';
+import { SealedBidRequestDto } from './dto/sealed-bid.request.dto';
 
 @ApiTags('advertiser')
 @ApiBearerAuth()
@@ -51,6 +52,15 @@ export class AdvertiserController {
     @CurrentPrincipal() principal: JwtPrincipal,
   ): Promise<CampaignResponseDto[]> {
     return this.advertiserService.listCampaigns(principal);
+  }
+
+  @Get('campaign/:id')
+  @ApiOperation({ summary: 'Get campaign details for authenticated advertiser' })
+  async getCampaign(
+    @CurrentPrincipal() principal: JwtPrincipal,
+    @Param('id') id: string,
+  ): Promise<CampaignDetailResponseDto> {
+    return this.advertiserService.getCampaign(principal, id);
   }
 
   @Get('campaign/:id/analytics')

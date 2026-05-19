@@ -1,15 +1,22 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import { Suspense, type FormEvent, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authApi } from '@/lib/api/auth.api';
-import { ApiError } from '@/lib/api/client';
+import { clientApiClient, DashboardApiError } from '@/lib/api-client';
 
 export default function LoginPage(): JSX.Element {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get('next') ?? '/';
-  const [email, setEmail] = useState('advertiser@admidnight.local');
+  const [email, setEmail] = useState('demo@admidnight.io');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,12 +27,12 @@ export default function LoginPage(): JSX.Element {
     setError(null);
 
     try {
-      await authApi.login({ email, password });
+      await clientApiClient.login({ email, password });
       router.replace(nextPath);
     } catch (loginError) {
-      if (loginError instanceof ApiError && loginError.status === 401) {
+      if (loginError instanceof DashboardApiError && loginError.status === 401) {
         setError('Invalid advertiser credentials. The session cookie was not issued.');
-      } else if (loginError instanceof ApiError && loginError.status === 408) {
+      } else if (loginError instanceof DashboardApiError && loginError.status === 408) {
         setError('Login timed out. Retry after the auth service responds.');
       } else {
         setError(loginError instanceof Error ? loginError.message : 'Login failed');
@@ -90,6 +97,16 @@ export default function LoginPage(): JSX.Element {
         <p className="mt-5 text-xs text-gray-500">
           Default local credentials can be provided through the API environment. Cookie-based auth is required for protected API calls.
         </p>
+      </div>
+    </main>
+  );
+}
+
+function LoginPageFallback(): JSX.Element {
+  return (
+    <main className="min-h-screen bg-[var(--color-midnight)] px-6 py-16">
+      <div className="mx-auto max-w-lg rounded-3xl border border-white/10 bg-[var(--color-midnight-card)] p-8 shadow-2xl shadow-black/30">
+        <p className="text-sm text-gray-400">Loading sign-in…</p>
       </div>
     </main>
   );

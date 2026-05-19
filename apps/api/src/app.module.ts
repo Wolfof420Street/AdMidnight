@@ -14,42 +14,14 @@ import { PersistenceModule } from './modules/persistence/persistence.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { PublisherModule } from './modules/publisher/publisher.module';
 import { UserModule } from './modules/user/user.module';
+import { validateConfig } from './config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
-      validate: (config: Record<string, unknown>) => {
-        const required = [
-          'DATABASE_URL',
-          'JWT_SECRET',
-          'MIDNIGHT_PROOF_SERVER_URL',
-          'MIDNIGHT_INDEXER_GRAPHQL_URL',
-          'MIDNIGHT_INDEXER_WS_URL',
-          'MIDNIGHT_PRIVATE_STATE_PASSWORD',
-          'MATCH_REGISTRY_CONTRACT_ADDRESS',
-          'AUCTION_CONTRACT_ADDRESS',
-          'REWARD_CONTRACT_ADDRESS',
-        ];
-        const isProduction = config.NODE_ENV === 'production';
-        for (const key of required) {
-          if (!config[key]) {
-            throw new Error(`Missing required env var: ${key}`);
-          }
-        }
-        const jwtSecret = String(config.JWT_SECRET);
-        if (
-          jwtSecret.length < 32 ||
-          jwtSecret === 'change_me_in_production_min_32_chars'
-        ) {
-          throw new Error('JWT_SECRET must be a strong non-default value of at least 32 characters');
-        }
-        if (isProduction && (!config.ADVERTISER_LOGIN_EMAIL || !config.ADVERTISER_LOGIN_PASSWORD)) {
-          throw new Error('ADVERTISER_LOGIN_EMAIL and ADVERTISER_LOGIN_PASSWORD are required in production');
-        }
-        return config;
-      },
+      envFilePath: ['.env.local', '.env', '../../.env.local', '../../.env'],
+      validate: validateConfig,
     }),
     JwtModule.registerAsync({
       global: true,

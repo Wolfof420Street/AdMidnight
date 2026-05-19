@@ -3,6 +3,7 @@ WORKDIR /app
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@8.6.7 --activate
+RUN pnpm config set fetch-retries 5 && pnpm config set fetch-timeout 600000 && pnpm config set network-concurrency 1
 
 # Copy manifests
 COPY package.json turbo.json tsconfig.base.json ./
@@ -11,8 +12,8 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/midnight-sdk-wrapper/package.json ./packages/midnight-sdk-wrapper/
 
-# Install dependencies with pnpm without running the root workspace lifecycle.
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
+# Install only the API workspace and its transitive workspace deps.
+RUN pnpm install --filter "@admidnight/api..." --no-frozen-lockfile --ignore-scripts
 
 # Copy source
 COPY apps/api ./apps/api

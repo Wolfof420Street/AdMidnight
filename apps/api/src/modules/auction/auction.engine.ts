@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { AuctionResultResponseDto } from '@admidnight/shared';
-import type { MidnightGateway } from '../midnight/midnight.gateway';
-import type { BidRepository } from '../persistence/repositories/bid.repository';
-import type { ProofRepository } from '../persistence/repositories/proof.repository';
+import { MidnightGateway } from '../midnight/midnight.gateway';
+import { BidRepository } from '../persistence/repositories/bid.repository';
+import { ProofRepository } from '../persistence/repositories/proof.repository';
 import type { RevealBidRequestDto } from '../advertiser/dto/reveal-bid.request.dto';
 import { SecondPriceStrategy } from './strategies/second-price.strategy';
 
@@ -97,5 +97,9 @@ export class AuctionEngine {
       throw new NotFoundException('Auction result not found');
     }
     return result;
+  }
+
+  tryGetAuctionResult(campaignId: string): AuctionResultResponseDto | null {
+    return this.results.get(campaignId) ?? null;
   }
 }

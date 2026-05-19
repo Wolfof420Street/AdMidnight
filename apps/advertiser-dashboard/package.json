@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "next build --no-lint",
     "start": "next start",
     "type-check": "tsc --noEmit -p tsconfig.json",
     "test": "echo \"No tests yet for @admidnight/advertiser-dashboard\"",

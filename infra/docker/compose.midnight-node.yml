@@ -12,7 +12,7 @@ services:
       - allow_non_ssl=true
       - use_main_chain_follower_mock=true
       - mock_registrations_file=/mock/mock-registrations.json
-      - append_args=--rpc-external --rpc-methods=unsafe
+      - append_args=--rpc-methods=unsafe
     volumes:
       - midnight_data:/data
       - ${HOME:-/root}/ipc:/ipc
@@ -25,7 +25,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9615/metrics"]
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/localhost/9944'"]
       interval: 30s
       timeout: 10s
       retries: 5
