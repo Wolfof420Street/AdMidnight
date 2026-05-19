@@ -2,7 +2,6 @@
  * ContractClient — wraps the real Midnight.js contract deployment and invocation API.
  */
 
-import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import type { MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 
 export interface DeployedContractHandle {
@@ -20,6 +19,7 @@ export async function deployAdContract(
   providers: MidnightProviders,
   config: ContractDeployConfig,
 ): Promise<DeployedContractHandle> {
+  const { deployContract } = await import('@midnight-ntwrk/midnight-js-contracts');
   const compiledContract = await import(config.compiledContractModule) as { default: unknown };
 
   const deployed = await deployContract(providers, {
@@ -40,6 +40,7 @@ export async function connectToContract(
   compiledContractModule: string,
   privateStateId: string,
 ): Promise<DeployedContractHandle> {
+  const { findDeployedContract } = await import('@midnight-ntwrk/midnight-js-contracts');
   const compiledContract = await import(compiledContractModule) as { default: unknown };
 
   const found = await findDeployedContract(providers, {

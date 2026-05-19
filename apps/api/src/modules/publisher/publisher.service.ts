@@ -1,8 +1,8 @@
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { RegisterImpressionRequestDto } from './dto/register-impression.request.dto';
-import type { ProofRepository } from '../persistence/repositories/proof.repository';
-import type { PublisherRepository } from '../persistence/repositories/publisher.repository';
+import { ProofRepository } from '../persistence/repositories/proof.repository';
+import { PublisherRepository } from '../persistence/repositories/publisher.repository';
 
 @Injectable()
 export class PublisherService {

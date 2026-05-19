@@ -18,10 +18,10 @@ export function DashboardHeader(): JSX.Element {
         </div>
 
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-          <Link href="/" className="hover:text-white transition-colors">
-            Dashboard
+          <Link href="/campaigns" className="hover:text-white transition-colors">
+            Campaigns
           </Link>
-          <Link href="/campaign/new" className="hover:text-white transition-colors">
+          <Link href="/campaigns/new" className="hover:text-white transition-colors">
             New Campaign
           </Link>
           <Link href="/login" className="hover:text-white transition-colors">

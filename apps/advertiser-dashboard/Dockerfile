@@ -3,12 +3,13 @@ WORKDIR /app
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@8.6.7 --activate
+RUN pnpm config set fetch-retries 5 && pnpm config set fetch-timeout 600000 && pnpm config set network-concurrency 1
 
-COPY package.json turbo.json tsconfig.base.json pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml turbo.json tsconfig.base.json pnpm-workspace.yaml ./
 COPY apps/advertiser-dashboard/package.json ./apps/advertiser-dashboard/
 COPY packages ./packages
 
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
+RUN pnpm install --filter "@admidnight/advertiser-dashboard..." --frozen-lockfile --ignore-scripts
 
 COPY apps/advertiser-dashboard ./apps/advertiser-dashboard
 

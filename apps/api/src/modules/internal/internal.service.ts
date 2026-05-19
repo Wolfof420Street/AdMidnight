@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ProofCryptoService } from '../midnight/proof-crypto.service';
+import { ProofCryptoService } from '../midnight/proof-crypto.service';
 import type { ValidateProofRequestDto } from './dto/validate-proof.request.dto';
 
 @Injectable()

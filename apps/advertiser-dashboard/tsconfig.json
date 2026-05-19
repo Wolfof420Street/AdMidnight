@@ -3,19 +3,37 @@
   "compilerOptions": {
     "module": "ESNext",
     "jsx": "preserve",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "allowJs": false,
-    "incremental": true,
-    "noEmit": true,
-    "ignoreDeprecations": "6.0",
-    "plugins": [{ "name": "next" }],
+    "lib": [
+      "ES2022",
+      "DOM",
+    "DOM.Iterable"
+  ],
+  "allowJs": false,
+  "incremental": true,
+  "noEmit": true,
+  "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@admidnight/shared": ["../../packages/shared/src"]
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "@admidnight/shared": [
+        "../../packages/shared/src"
+      ]
+    },
+    "isolatedModules": true
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
-

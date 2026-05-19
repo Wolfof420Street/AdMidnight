@@ -12,7 +12,9 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RoleGuard } from '../../common/guards/role.guard';
 import type { RegisterImpressionRequestDto } from './dto/register-impression.request.dto';
-import type { PublisherService } from './publisher.service';
+// Keep as a runtime import for NestJS DI (disable the linter rule for this line)
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { PublisherService } from './publisher.service';
 
 @ApiTags('publisher')
 @Roles('publisher')

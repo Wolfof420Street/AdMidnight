@@ -7,7 +7,7 @@
  */
 import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import {
   buildMidnightProviders,
   type BackendProviders,
@@ -23,6 +23,11 @@ export class MidnightProviderService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.isDevMode()) {
+      this.logger.warn('MIDNIGHT_DEV_MODE enabled; skipping Midnight provider initialisation');
+      return;
+    }
+
     const password = this.config.getOrThrow<string>('MIDNIGHT_PRIVATE_STATE_PASSWORD');
     if (password.length < 16) {
       throw new Error('MIDNIGHT_PRIVATE_STATE_PASSWORD must be ≥16 characters');
@@ -58,5 +63,17 @@ export class MidnightProviderService implements OnModuleInit, OnModuleDestroy {
 
   isConnected(): boolean {
     return this.providers !== null;
+  }
+
+  isDevMode(): boolean {
+    const raw = this.config.get<string | boolean>('MIDNIGHT_DEV_MODE');
+    if (typeof raw === 'boolean') {
+      return raw;
+    }
+    if (typeof raw === 'string') {
+      return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
+    }
+    // Require explicit opt-in via MIDNIGHT_DEV_MODE; do not infer from NODE_ENV
+    return false;
   }
 }

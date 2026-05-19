@@ -77,6 +77,12 @@ cardano-data/
 .env.contracts          # output of deploy.mts — contains contract addresses
 .env.local
 
+# Generated prisma client and artifacts
+/apps/api/prisma/generated/
+
+# Local demo log
+demo.log
+
 # Misc local-only files
 .mcp-discovery.json
 .docker-nocreds/

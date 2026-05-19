@@ -27,6 +27,19 @@ type FormTextField =
   | 'startTime'
   | 'endTime';
 
+function toIsoTimestamp(value: string): string {
+  if (!value) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid date value: ${value}`);
+  }
+
+  return parsed.toISOString();
+}
+
 export default function NewCampaignPage(): JSX.Element {
   const router = useRouter();
   const [step, setStep] = useState<CampaignFormStep>('segment');
@@ -54,7 +67,11 @@ export default function NewCampaignPage(): JSX.Element {
     setError(null);
 
     try {
-      await campaignsApi.create(formData);
+      await campaignsApi.create({
+        ...formData,
+        startTime: toIsoTimestamp(formData.startTime),
+        endTime: toIsoTimestamp(formData.endTime),
+      });
       router.push('/');
     } catch (submissionError) {
       if (submissionError instanceof ApiError && submissionError.status === 401) {

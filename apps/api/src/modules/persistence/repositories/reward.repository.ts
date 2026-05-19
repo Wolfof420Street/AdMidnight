@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 type RewardRow = {
   nullifier: string;
@@ -35,6 +35,21 @@ export class RewardRepository {
     const row = await this.prisma.rewardClaim.findFirst({
       where: { nullifier, status: 'PENDING' },
       select: { nullifier: true, campaignId: true, amountMidnight: true, status: true, createdAt: true },
+    });
+
+    return (row as unknown as RewardRow) ?? null;
+  }
+
+  async findByNullifier(nullifier: string): Promise<RewardRow | null> {
+    const row = await this.prisma.rewardClaim.findUnique({
+      where: { nullifier },
+      select: {
+        nullifier: true,
+        campaignId: true,
+        amountMidnight: true,
+        status: true,
+        createdAt: true,
+      },
     });
 
     return (row as unknown as RewardRow) ?? null;

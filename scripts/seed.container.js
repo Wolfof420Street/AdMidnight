@@ -1,5 +1,11 @@
 const crypto = require('node:crypto');
-const { PrismaClient } = require('@prisma/client');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+
+const apiRequire = createRequire(
+  path.join(__dirname, '..', 'apps', 'api', 'package.json'),
+);
+const { PrismaClient } = apiRequire('@prisma/client');
 
 const prisma = new PrismaClient();
 

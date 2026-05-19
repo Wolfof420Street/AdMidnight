@@ -2,10 +2,21 @@
 # Provides install/build/dev/test/lint and demo helpers
 
 SHELL := /bin/bash
-DOCKER_CONFIG_DIR := $(CURDIR)/.docker-nocreds
-DOCKER_COMPOSE := DOCKER_CONFIG=$(DOCKER_CONFIG_DIR) docker --context default compose
+DOCKER_COMPOSE := docker-compose
+ENV_LOADER := set -a; source ./.env; if [ -f ./.env.local ]; then source ./.env.local; fi; set +a;
 
-.PHONY: install build dev test lint docker-up docker-down demo flutter-run seed e2e
+.PHONY: install build dev test lint docker-up docker-down demo flutter-run seed e2e ensure-env migrate deploy-contracts
+
+ensure-env:
+	@if [ ! -f .env ]; then \
+	  cp .env.example .env; \
+	  echo "Created .env from .env.example"; \
+	fi
+
+	@if [ ! -f .env.local ]; then \
+	  touch .env.local; \
+	  echo "Created empty .env.local"; \
+	fi
 
 install:
 	pnpm install
@@ -33,31 +44,47 @@ lint:
 	@echo "Run 'dart analyze' in apps/mobile for mobile linting"
 
 docker-up:
-	$(DOCKER_COMPOSE) up -d
+	$(MAKE) ensure-env
+	DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 $(DOCKER_COMPOSE) up -d
 
 docker-down:
 	$(DOCKER_COMPOSE) down
 
-demo: docker-up
-	@echo "Waiting for services to become healthy..."
-	bash ./scripts/wait-for-it.sh localhost:5432 --timeout=60 -- echo "✓ Postgres ready"
-	bash ./scripts/wait-for-it.sh localhost:9944 --timeout=120 -- echo "✓ Midnight node ready"
-	bash ./scripts/wait-for-it.sh localhost:6300 --timeout=60 -- echo "✓ Proof server ready"
-	bash ./scripts/wait-for-it.sh localhost:8088 --timeout=60 -- echo "✓ Indexer ready"
-	@echo "Waiting for API to be ready..."
-	bash ./scripts/wait-for-it.sh localhost:3001 --timeout=60 -- echo "✓ API ready at http://localhost:3001/api/v1"
-	@echo "Waiting for Dashboard to be ready..."
-	bash ./scripts/wait-for-it.sh localhost:3000 --timeout=60 -- echo "✓ Dashboard ready at http://localhost:3000"
-	@echo ""
-	@echo "🎉 AdMidnight demo environment ready!"
-	@echo "  Dashboard: http://localhost:3000"
-	@echo "  API:       http://localhost:3001/api/v1"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Open http://localhost:3000 in your browser"
-	@echo "  2. Login with demo@admidnight.io"
-	@echo "  3. Run 'make seed' to create demo data"
-	@echo "  4. Run 'make e2e' to test the full flow"
+migrate: ensure-env
+	@$(ENV_LOADER) pnpm --filter @admidnight/api exec -- prisma migrate deploy
+
+
+demo: ensure-env
+	@set -euo pipefail; \
+	$(ENV_LOADER) \
+	INDEXER_NETWORK_ID=undeployed; export INDEXER_NETWORK_ID; \
+	if [[ -z "${INDEXER_SECRET:-}" || "${INDEXER_SECRET}" =~ ^[0-9]+$$ ]]; then \
+		INDEXER_SECRET=$$(openssl rand -hex 32); \
+		export INDEXER_SECRET; \
+	fi; \
+	$(DOCKER_COMPOSE) up -d postgres midnight-node proof-server indexer; \
+	echo "Waiting for services to become healthy..."; \
+	bash ./scripts/wait-for-it.sh localhost:5432 --timeout=60 -- echo "✓ Postgres ready"; \
+	bash ./scripts/wait-for-it.sh localhost:9944 --timeout=120 -- echo "✓ Midnight node ready"; \
+	bash ./scripts/wait-for-http.sh http://localhost:6300/health --timeout=60; \
+	echo "✓ Proof server ready"; \
+	bash ./scripts/wait-for-http.sh http://localhost:8088/api/v4/graphql --timeout=60 --post-graphql; \
+	echo "✓ Indexer ready"; \
+	pnpm --filter @admidnight/api exec -- prisma migrate deploy; \
+	pnpm --filter @admidnight/api exec -- prisma db seed; \
+	$(MAKE) deploy-contracts; \
+	echo "Starting API and dashboard containers..."; \
+	DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 $(DOCKER_COMPOSE) up -d api dashboard; \
+	bash ./scripts/wait-for-http.sh http://localhost:3001/api/v1/health --timeout=120; \
+	echo "✓ API ready at http://localhost:3001/api/v1"; \
+	bash ./scripts/wait-for-http.sh http://localhost:3000 --timeout=120; \
+	echo "✓ Dashboard ready at http://localhost:3000"; \
+	echo ""; \
+	echo "=== AdMidnight demo ready ==="; \
+	echo "  Dashboard: http://localhost:3000"; \
+	echo "  API:       http://localhost:3001/api/v1"; \
+	echo "  Login:     $${ADVERTISER_LOGIN_EMAIL} / $${ADVERTISER_LOGIN_PASSWORD}"; \
+	echo ""
 
 flutter-run:
 	@echo "Run flutter from apps/mobile with .env provided."
@@ -76,6 +103,6 @@ e2e:
 	@echo "Run e2e demo script"
 	node scripts/e2e-demo.js
 
-deploy-contracts:
-	@echo "Deploying contracts via packages/zk-circuits/scripts/deploy-run.js"
-	node packages/zk-circuits/scripts/deploy-run.js
+deploy-contracts: ensure-env
+	@echo "Deploying contracts via packages/zk-circuits"
+	@$(ENV_LOADER) pnpm --filter @admidnight/zk-circuits run deploy

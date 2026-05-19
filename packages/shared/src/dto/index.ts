@@ -77,6 +77,12 @@ export interface CampaignResponseDto {
   endTime: string;
 }
 
+export interface CampaignDetailResponseDto extends CampaignResponseDto {
+  auctionStatus: 'OPEN' | 'CLOSED' | 'SETTLED';
+  winnerAdvertiserId?: string;
+  settlementTxHash?: string;
+}
+
 export interface AnalyticsDto {
   campaignId: string;
   impressions: number;

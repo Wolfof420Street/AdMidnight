@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class ProofRepository {
@@ -31,6 +31,25 @@ export class ProofRepository {
   async isNullifierUsed(nullifier: string): Promise<boolean> {
     const count = await this.prisma.proofRecord.count({ where: { nullifier } });
     return count > 0;
+  }
+
+  async findByNullifier(nullifier: string): Promise<{
+    nullifier: string;
+    campaignId: string;
+    segmentId: string;
+    isMatch: boolean;
+  } | null> {
+    const row = await this.prisma.proofRecord.findUnique({
+      where: { nullifier },
+      select: {
+        nullifier: true,
+        campaignId: true,
+        segmentId: true,
+        isMatch: true,
+      },
+    });
+
+    return row;
   }
 
   async getImpressionCount(campaignId: string): Promise<number> {

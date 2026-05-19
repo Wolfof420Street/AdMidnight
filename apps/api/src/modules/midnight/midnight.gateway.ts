@@ -5,12 +5,12 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { connectToContract, type DeployedContractHandle } from '@admidnight/midnight-sdk-wrapper';
 import type { ZKProof } from '@admidnight/shared';
 import { resolve } from 'path';
-import type { MidnightProviderService } from './midnight-provider.service';
-import type { ProofCryptoService } from './proof-crypto.service';
+import { MidnightProviderService } from './midnight-provider.service';
+import { ProofCryptoService } from './proof-crypto.service';
 
 /**
  * Result type for all gateway calls
@@ -34,6 +34,11 @@ export class MidnightGateway implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.isDevMode()) {
+      this.logger.warn('MIDNIGHT_DEV_MODE enabled; using mock Midnight gateway responses');
+      return;
+    }
+
     const managedDir = resolve(
       this.config.get(
         'MIDNIGHT_ZK_ARTIFACTS_DIR',
@@ -71,6 +76,10 @@ export class MidnightGateway implements OnModuleInit {
     similarityThreshold: number;
     segmentCommitment: string;
   }): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('register-segment', params);
+    }
+
     const contract = this.requireContract(this.matchRegistryContract, 'MatchRegistry');
     // Convert threshold to Field (BigInt in SDK)
     const thresholdField = BigInt(Math.floor(params.similarityThreshold * 1e18));
@@ -88,6 +97,15 @@ export class MidnightGateway implements OnModuleInit {
     proofHash: string;
     publicInputHash: string;
   }> {
+    if (this.isDevMode()) {
+      const bound = this.proofCrypto.verifyAndBind(proof);
+      return {
+        txHash: this.mockTxHash('submit-match-proof', proof.publicInputs),
+        proofHash: bound.proofHash,
+        publicInputHash: bound.publicInputHash,
+      };
+    }
+
     const contract = this.requireContract(this.matchRegistryContract, 'MatchRegistry');
     const bound = this.proofCrypto.verifyAndBind(proof);
     const result = (await contract.callTx.proveSegmentMatch(
@@ -109,6 +127,10 @@ export class MidnightGateway implements OnModuleInit {
     campaignId: string,
     commitmentHash: string,
   ): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('commit-bid', { advertiserId, campaignId, commitmentHash });
+    }
+
     const contract = this.requireContract(this.auctionContract, 'AdAuction');
     const result = (await contract.callTx.commitBid(
       advertiserId,
@@ -122,6 +144,10 @@ export class MidnightGateway implements OnModuleInit {
     campaignId: string,
     budgetMidnight: string,
   ): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('lock-budget', { campaignId, budgetMidnight });
+    }
+
     const contract = this.requireContract(this.auctionContract, 'AdAuction');
     const budgetBigInt = BigInt(budgetMidnight);
     const result = (await contract.callTx.lockBudget(
@@ -132,6 +158,10 @@ export class MidnightGateway implements OnModuleInit {
   }
 
   async closeBidding(campaignId: string): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('close-bidding', { campaignId });
+    }
+
     const contract = this.requireContract(this.auctionContract, 'AdAuction');
     const result = (await contract.callTx.closeBidding(campaignId)) as { txHash: string };
     return result.txHash;
@@ -143,6 +173,10 @@ export class MidnightGateway implements OnModuleInit {
     priceToPay: string;
     impressionProofNullifier: string;
   }): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('settle-auction', params);
+    }
+
     const contract = this.requireContract(this.auctionContract, 'AdAuction');
     const priceBigInt = BigInt(params.priceToPay);
     const result = (await contract.callTx.settleAuction(
@@ -155,12 +189,20 @@ export class MidnightGateway implements OnModuleInit {
   }
 
   async getImpressionCount(campaignId: string): Promise<bigint> {
+    if (this.isDevMode()) {
+      return 0n;
+    }
+
     const contract = this.requireContract(this.matchRegistryContract, 'MatchRegistry');
     const result = (await contract.callTx.getImpressionCount(campaignId)) as bigint;
     return result;
   }
 
   async escrowReward(nullifier: string, amountMidnight: string): Promise<string> {
+    if (this.isDevMode()) {
+      return this.mockTxHash('escrow-reward', { nullifier, amountMidnight });
+    }
+
     const contract = this.requireContract(this.rewardContract, 'UserReward');
     // Convert amount string to Uint<64> (BigInt in JS)
     const amountBigInt = BigInt(amountMidnight);
@@ -172,6 +214,11 @@ export class MidnightGateway implements OnModuleInit {
   }
 
   async claimReward(nullifier: string, proofBytes: string): Promise<string> {
+    if (this.isDevMode()) {
+      this.proofCrypto.createClaimCommitment(proofBytes, nullifier);
+      return this.mockTxHash('claim-reward', { nullifier });
+    }
+
     const contract = this.requireContract(this.rewardContract, 'UserReward');
     const claimCommitment = this.proofCrypto.createClaimCommitment(
       proofBytes,
@@ -192,5 +239,17 @@ export class MidnightGateway implements OnModuleInit {
       throw new ServiceUnavailableException(`${name} contract is not connected`);
     }
     return contract;
+  }
+
+  private isDevMode(): boolean {
+    return this.providerService.isDevMode();
+  }
+
+  private mockTxHash(action: string, payload: unknown): string {
+    const digest = Buffer.from(
+      JSON.stringify({ action, payload }),
+      'utf8',
+    ).toString('hex');
+    return `0x${digest.padEnd(64, '0').slice(0, 64)}`;
   }
 }

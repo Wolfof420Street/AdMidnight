@@ -10,7 +10,7 @@
  * DIP: controllers/services depend on IIndexerQueryPort, not this concrete class.
  */
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import type { IIndexerQueryPort, CampaignId } from '@admidnight/shared';
 
 @Injectable()

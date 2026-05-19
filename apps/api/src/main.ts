@@ -71,7 +71,7 @@ async function bootstrap(): Promise<void> {
   );
 
   const config = app.get(ConfigService);
-  const port = config.get<number>('API_PORT', 3001);
+  const port = config.get<number>('PORT') ?? config.get<number>('API_PORT', 3001);
   const prefix = config.get<string>('API_PREFIX', '/api/v1');
   const isProduction = config.get<string>('NODE_ENV') === 'production';
   const allowedOrigins = parseOrigins(
@@ -139,4 +139,3 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch(console.error);
-

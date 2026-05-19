@@ -1,44 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { type FormEvent, useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { auctionApi, type AuctionResultResponseDto } from '@/lib/api/auction.api';
-import { ApiError } from '@/lib/api/client';
+import { type FormEvent, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { clientApiClient, DashboardApiError } from '@/lib/api-client';
+import type { AuctionResultResponseDto } from '@admidnight/shared';
 
 export default function RevealPage() {
-  const router = useRouter();
-  const params = useParams();
-  const campaignId = params.id as string;
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const params = useParams<{ id: string }>();
+  const campaignId = params.id;
+  const [actualBid, setActualBid] = useState('');
+  const [nonce, setNonce] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AuctionResultResponseDto | null>(null);
-  const [storedBidAmount, setStoredBidAmount] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    // Load stored bid from sessionStorage
-    if (typeof window !== 'undefined') {
-      const amount = sessionStorage.getItem(`bid:amount:${campaignId}`) ?? '';
-      setStoredBidAmount(amount);
-    }
-  }, [campaignId]);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
     setResult(null);
 
     try {
-      const auctionResult = await auctionApi.reveal({ campaignId });
-      setResult(auctionResult);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(`Reveal failed: ${err.message}`);
-      } else {
-        setError(err instanceof Error ? err.message : 'Reveal failed');
-      }
+      const response = await clientApiClient.revealBid({ campaignId, actualBid, nonce });
+      setResult(response);
+    } catch (submitError) {
+      setError(
+        submitError instanceof DashboardApiError
+          ? submitError.message
+          : 'Failed to reveal bid',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -46,94 +37,53 @@ export default function RevealPage() {
 
   return (
     <main className="min-h-screen bg-[var(--color-midnight)] px-6 py-12">
-      <div className="mx-auto max-w-2xl">
-        <Link href={`/campaigns/${campaignId}`} className="mb-8 inline-block text-gray-400 hover:text-white">
-          ← Back to Campaign
+      <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-black/30 p-8">
+        <Link href={`/campaigns/${campaignId}`} className="text-sm text-gray-400 hover:text-white">
+          Back to campaign
         </Link>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Reveal Bid</h1>
-          <p className="mt-2 text-gray-400">Reveal your sealed bid and settle the auction</p>
-        </div>
+        <h1 className="mt-6 text-3xl font-bold">Reveal Bid</h1>
 
-        <div className="rounded-xl border border-white/10 bg-black/30 p-8">
+        <form className="mt-6 space-y-5" onSubmit={onSubmit}>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Actual Bid</label>
+            <input
+              required
+              value={actualBid}
+              onChange={(event) => setActualBid(event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none focus:border-[var(--color-accent)]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Nonce</label>
+            <input
+              required
+              value={nonce}
+              onChange={(event) => setNonce(event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none focus:border-[var(--color-accent)]"
+            />
+          </div>
+
+          {error ? <p className="text-sm text-red-300">{error}</p> : null}
+
           {result ? (
-            <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-6">
-              <div className="mb-4 font-semibold text-green-200">Auction Settled</div>
-              <div className="grid gap-4">
-                <div>
-                  <div className="text-sm text-gray-400">Status</div>
-                  <div className="mt-1 text-lg font-bold capitalize">{result.auctionStatus}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Winner</div>
-                  <div className="mt-1 break-all font-mono text-sm">{result.winnerId}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Winning Bid</div>
-                  <div className="mt-1 text-lg font-bold">{result.winningBid} MIDNIGHT</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Price to Pay</div>
-                  <div className="mt-1 text-lg font-bold">{result.priceToPay} MIDNIGHT</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Timestamp</div>
-                  <div className="mt-1 text-sm">{new Date(result.timestamp).toLocaleString()}</div>
-                </div>
-              </div>
-              <button
-                onClick={() => router.push(`/campaigns/${campaignId}`)}
-                className="mt-6 w-full rounded-xl bg-[var(--color-accent)] px-6 py-3 font-semibold text-[var(--color-midnight)] transition-colors hover:bg-[var(--color-accent-dim)]"
-              >
-                Back to Campaign
-              </button>
+            <div className="space-y-2 rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm text-green-200">
+              <p>winner: {result.winnerAdvertiserId}</p>
+              <p>impressionCount: {result.impressionCount}</p>
+              <p>totalSpend: {result.totalSpend}</p>
+              <p>settlementTxHash: {result.settlementTxHash}</p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-                  {error}
-                </div>
-              )}
+          ) : null}
 
-              <div>
-                <label className="mb-2 block text-sm font-medium">Stored Bid Amount</label>
-                <input
-                  type="text"
-                  disabled
-                  value={storedBidAmount || '(No bid found in session)'}
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-gray-400 outline-none disabled:opacity-50"
-                />
-                <p className="mt-2 text-xs text-gray-500">
-                  This is the bid amount you submitted when placing the sealed bid. It's retrieved from your browser session.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
-                <p className="text-sm text-blue-200">
-                  The nonce and commitment hash are stored in your session and will be used to reveal your bid on-chain.
-                </p>
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !storedBidAmount}
-                  className="flex-1 rounded-xl bg-[var(--color-accent)] px-6 py-3 font-semibold text-[var(--color-midnight)] transition-colors hover:bg-[var(--color-accent-dim)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Revealing...' : 'Reveal Bid'}
-                </button>
-                <Link
-                  href={`/campaigns/${campaignId}`}
-                  className="rounded-xl border border-white/20 px-6 py-3 font-semibold transition-colors hover:border-white/40"
-                >
-                  Cancel
-                </Link>
-              </div>
-            </form>
-          )}
-        </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-xl bg-[var(--color-accent)] px-5 py-3 font-semibold text-[var(--color-midnight)] disabled:opacity-60"
+          >
+            {isSubmitting ? 'Revealing...' : 'Reveal Bid'}
+          </button>
+        </form>
       </div>
     </main>
   );

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -24,13 +25,13 @@ export default function DashboardPage(): JSX.Element {
             <h2 className="text-2xl font-bold tracking-tight">Your Campaigns</h2>
             <p className="text-gray-400 mt-1 text-sm">All targeting verified by zero-knowledge proofs.</p>
           </div>
-          <a
-            href="/campaign/new"
+          <Link
+            href="/campaigns/new"
             className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--color-accent)]
                      text-[var(--color-midnight)] hover:bg-[var(--color-accent-dim)] transition-all accent-glow"
           >
             + New Campaign
-          </a>
+          </Link>
       </div>
 
       <ErrorBoundary>

@@ -6,7 +6,7 @@ services:
     image: midnightntwrk/indexer-standalone:4.0.2
     container_name: admidnight-indexer
     environment:
-      - APP__APPLICATION__NETWORK_ID=${CFG_PRESET:-undeployed}
+      - APP__APPLICATION__NETWORK_ID=${INDEXER_NETWORK_ID:-undeployed}
       - APP__INFRA__NODE__URL=ws://midnight-node:9944
       - APP__INFRA__API__PORT=8088
       # REQUIRED: hex-encoded 32-byte secret for indexer authentication

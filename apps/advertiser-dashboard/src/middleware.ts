@@ -1,24 +1,21 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Routes that require authentication
-const PROTECTED_ROUTES = ['/campaigns'];
+const AUTH_COOKIE_NAME = 'admidnight_session';
+const PROTECTED_PREFIX = '/campaigns';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  // Check if route requires authentication
-  const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
-
-  if (!isProtected) {
+  if (!pathname.startsWith(PROTECTED_PREFIX)) {
     return NextResponse.next();
   }
 
-  // Check for session cookie
-  const hasSession = request.cookies.has('session');
+  const hasSession = request.cookies.has(AUTH_COOKIE_NAME);
 
   if (!hasSession) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', pathname);
+    // Include pathname and original query string so users return to the exact URL
+    loginUrl.searchParams.set('next', `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -26,5 +23,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|static|favicon.ico).*)'],
+  matcher: ['/campaigns/:path*'],
 };

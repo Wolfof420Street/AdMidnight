@@ -8,16 +8,17 @@ import {
 import { createHash, randomUUID } from 'crypto';
 import type {
   AuctionResultResponseDto,
+  CampaignDetailResponseDto,
   CampaignResponseDto,
 } from '@admidnight/shared';
 import { IdFactory } from '@admidnight/shared';
-import type { AuctionEngine } from '../auction/auction.engine';
+import { AuctionEngine } from '../auction/auction.engine';
 import type { JwtPrincipal } from '../../common/auth/jwt-principal';
-import type { MidnightGateway } from '../midnight/midnight.gateway';
-import type { AdvertiserRepository } from '../persistence/repositories/advertiser.repository';
-import type { BidRepository } from '../persistence/repositories/bid.repository';
-import type { CampaignRepository } from '../persistence/repositories/campaign.repository';
-import type { ProofRepository } from '../persistence/repositories/proof.repository';
+import { MidnightGateway } from '../midnight/midnight.gateway';
+import { AdvertiserRepository } from '../persistence/repositories/advertiser.repository';
+import { BidRepository } from '../persistence/repositories/bid.repository';
+import { CampaignRepository } from '../persistence/repositories/campaign.repository';
+import { ProofRepository } from '../persistence/repositories/proof.repository';
 import type { CreateCampaignRequestDto } from './dto/create-campaign.request.dto';
 import type { RevealBidRequestDto } from './dto/reveal-bid.request.dto';
 import type { SealedBidRequestDto } from './dto/sealed-bid.request.dto';
@@ -95,6 +96,41 @@ export class AdvertiserService {
   async listCampaigns(principal: JwtPrincipal): Promise<CampaignResponseDto[]> {
     this.assertAdvertiserPrincipal(principal);
     return this.campaignRepository.listByAdvertiser(principal.sub);
+  }
+
+  async getCampaign(
+    principal: JwtPrincipal,
+    campaignId: string,
+  ): Promise<CampaignDetailResponseDto> {
+    this.assertAdvertiserPrincipal(principal);
+    const campaign = await this.campaignRepository.findByIdForAdvertiser(
+      campaignId,
+      principal.sub,
+    );
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found');
+    }
+
+    const settledResult = this.auctionEngine.tryGetAuctionResult(campaignId);
+    if (settledResult) {
+      return {
+        ...campaign,
+        auctionStatus: 'SETTLED',
+        winnerAdvertiserId: settledResult.winnerAdvertiserId,
+        settlementTxHash: settledResult.settlementTxHash,
+      };
+    }
+
+    const existingCommitment = await this.bidRepository.getCommitment(
+      principal.sub,
+      campaignId,
+    );
+
+    return {
+      ...campaign,
+      auctionStatus: existingCommitment ? 'CLOSED' : 'OPEN',
+    };
   }
 
   async getCampaignAnalytics(

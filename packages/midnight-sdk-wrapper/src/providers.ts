@@ -8,11 +8,6 @@ import {
   setNetworkId,
   type NetworkId,
 } from '@midnight-ntwrk/midnight-js-network-id';
-import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
-import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
-import { nodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
-import { pinoLoggerProvider } from '@midnight-ntwrk/midnight-js-logger-provider';
 import type { MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 export type MidnightNetworkId = NetworkId;
 export type BackendProviders = MidnightProviders;
@@ -36,6 +31,22 @@ export function initMidnightNetwork(networkId: MidnightNetworkId): void {
 export async function buildMidnightProviders(
   config: MidnightProviderConfig,
 ): Promise<MidnightProviders> {
+  // Ensure the SDK uses the requested network for any provider initialization
+  setNetworkId(config.networkId);
+  const [
+    { levelPrivateStateProvider },
+    { indexerPublicDataProvider },
+    { httpClientProofProvider },
+    { nodeZkConfigProvider },
+    { pinoLoggerProvider },
+  ] = await Promise.all([
+    import('@midnight-ntwrk/midnight-js-level-private-state-provider'),
+    import('@midnight-ntwrk/midnight-js-indexer-public-data-provider'),
+    import('@midnight-ntwrk/midnight-js-http-client-proof-provider'),
+    import('@midnight-ntwrk/midnight-js-node-zk-config-provider'),
+    import('@midnight-ntwrk/midnight-js-logger-provider'),
+  ]);
+
   if (config.privateStatePassword.length < 16) {
     throw new Error('privateStatePassword must be at least 16 characters (SDK requirement)');
   }
