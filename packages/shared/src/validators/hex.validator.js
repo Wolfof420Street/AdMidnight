@@ -35,8 +35,7 @@ function isValidBytes32(value) {
 }
 function deriveNullifier(segmentId, campaignId, salt) {
     const { createHash } = require('crypto');
-    return '0x' + createHash('sha256')
-        .update(`${segmentId}:${campaignId}:${salt}`)
-        .digest('hex');
+    const preimage = JSON.stringify([segmentId, campaignId, salt]);
+    return '0x' + createHash('sha256').update(preimage).digest('hex');
 }
 //# sourceMappingURL=hex.validator.js.map

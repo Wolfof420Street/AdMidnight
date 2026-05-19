@@ -38,10 +38,10 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deployAdContract = deployAdContract;
 exports.connectToContract = connectToContract;
-const midnight_js_contracts_1 = require("@midnight-ntwrk/midnight-js-contracts");
 async function deployAdContract(providers, config) {
     const compiledContract = await Promise.resolve(`${config.compiledContractModule}`).then(s => __importStar(require(s)));
-    const deployed = await (0, midnight_js_contracts_1.deployContract)(providers, {
+    const { deployContract } = require('@midnight-ntwrk/midnight-js-contracts');
+    const deployed = await deployContract(providers, {
         compiledContract: compiledContract.default,
         privateStateId: config.privateStateId,
         initialPrivateState: config.initialPrivateState,
@@ -53,7 +53,8 @@ async function deployAdContract(providers, config) {
 }
 async function connectToContract(providers, contractAddress, compiledContractModule, privateStateId) {
     const compiledContract = await Promise.resolve(`${compiledContractModule}`).then(s => __importStar(require(s)));
-    const found = await (0, midnight_js_contracts_1.findDeployedContract)(providers, {
+    const { findDeployedContract } = require('@midnight-ntwrk/midnight-js-contracts');
+    const found = await findDeployedContract(providers, {
         contractAddress,
         compiledContract: compiledContract.default,
         privateStateId,

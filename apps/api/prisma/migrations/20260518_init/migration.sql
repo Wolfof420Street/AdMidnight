@@ -133,3 +133,16 @@ CREATE INDEX "PublisherImpression_slotId_idx" ON "PublisherImpression"("slotId")
 -- CreateIndex
 CREATE INDEX "PublisherImpression_createdAt_idx" ON "PublisherImpression"("createdAt");
 
+-- Add foreign key constraints to enforce relational integrity
+ALTER TABLE "Bid"
+    ADD CONSTRAINT "Bid_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id") ON DELETE CASCADE;
+
+ALTER TABLE "ProofRecord"
+    ADD CONSTRAINT "ProofRecord_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id") ON DELETE CASCADE;
+
+ALTER TABLE "RewardClaim"
+    ADD CONSTRAINT "RewardClaim_campaign_fkey" FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id") ON DELETE CASCADE;
+
+ALTER TABLE "PublisherImpression"
+    ADD CONSTRAINT "PublisherImpression_proof_fkey" FOREIGN KEY ("nullifier") REFERENCES "ProofRecord"("nullifier") ON DELETE CASCADE;
+

@@ -58,12 +58,11 @@ function loadDiscovery(): { nodePort?: number } {
 }
 
 function hasAllContractValues(values: EnvMap): boolean {
-  return Boolean(
-    values.MATCH_REGISTRY_CONTRACT_ADDRESS &&
-      values.AUCTION_CONTRACT_ADDRESS &&
-      values.REWARD_CONTRACT_ADDRESS &&
-      values.TEST_SEGMENT_ID,
-  );
+  const hasMatch = Boolean(values.MATCH_REGISTRY_CONTRACT_ADDRESS || values.CONTRACT_ADDRESS_MATCH_REGISTRY);
+  const hasAuction = Boolean(values.AUCTION_CONTRACT_ADDRESS || values.CONTRACT_ADDRESS_AUCTION);
+  const hasReward = Boolean(values.REWARD_CONTRACT_ADDRESS || values.CONTRACT_ADDRESS_REWARD);
+  const hasTestSegment = Boolean(values.TEST_SEGMENT_ID);
+  return hasMatch && hasAuction && hasReward && hasTestSegment;
 }
 
 async function main() {

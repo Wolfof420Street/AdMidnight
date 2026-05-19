@@ -47,25 +47,47 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, cookieHeader, headers, ...rest } = options;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(cookieHeader ? { cookie: cookieHeader } : {}),
-      ...headers,
-    },
-    cache: 'no-store',
-  });
+  const controller = new AbortController();
+  const FETCH_TIMEOUT_MS = 10000;
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  return parseResponse<T>(response);
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...rest,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+        ...headers,
+      },
+      cache: 'no-store',
+    });
+
+    return await parseResponse<T>(response);
+  } catch (err: any) {
+    const apiErr = new DashboardApiError(
+      err && err.name === 'AbortError' ? 'Request timed out' : `Network error: ${err?.message ?? String(err)}`,
+      0,
+    );
+    (apiErr as any).isNetwork = true;
+    (apiErr as any).original = err;
+    throw apiErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function serverApiClient() {
   const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
+  const ALLOWED_COOKIES = ['admidnight_session'];
+  const cookieHeader = ALLOWED_COOKIES
+    .map((name) => cookieStore.get(name))
+    .filter(Boolean)
+    .map((c) => `${c!.name}=${c!.value}`)
+    .join('; ');
 
   return {
     listCampaigns: () =>

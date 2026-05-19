@@ -4,7 +4,7 @@ const AUTH_COOKIE_NAME = 'admidnight_session';
 const PROTECTED_PREFIX = '/campaigns';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   if (!pathname.startsWith(PROTECTED_PREFIX)) {
     return NextResponse.next();
@@ -14,7 +14,8 @@ export function middleware(request: NextRequest) {
 
   if (!hasSession) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', pathname);
+    // Include pathname and original query string so users return to the exact URL
+    loginUrl.searchParams.set('next', `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 

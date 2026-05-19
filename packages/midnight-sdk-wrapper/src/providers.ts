@@ -31,6 +31,8 @@ export function initMidnightNetwork(networkId: MidnightNetworkId): void {
 export async function buildMidnightProviders(
   config: MidnightProviderConfig,
 ): Promise<MidnightProviders> {
+  // Ensure the SDK uses the requested network for any provider initialization
+  setNetworkId(config.networkId);
   const [
     { levelPrivateStateProvider },
     { indexerPublicDataProvider },

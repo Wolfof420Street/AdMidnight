@@ -28,8 +28,9 @@ function main() {
 
   const cjsSentinel = path.join(compactJsRoot, 'dist', 'cjs', 'effect', 'index.js');
   if (fs.existsSync(cjsSentinel)) {
-    const firstLine = fs.readFileSync(cjsSentinel, 'utf8').split('\n', 1)[0] || '';
-    if (!firstLine.trim().startsWith('import')) {
+    const content = fs.readFileSync(cjsSentinel, 'utf8');
+    // If the file does NOT contain ESM tokens, treat it as already CJS and exit.
+    if (!/\b(import|export)\b/.test(content)) {
       return;
     }
   }

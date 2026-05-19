@@ -99,7 +99,10 @@ export default async function CampaignsPage() {
     );
   } catch (error) {
     if (error instanceof DashboardApiError) {
-      redirect('/login');
+      const status = (error as any).status ?? (error as any).statusCode;
+      if (status === 401 || status === 403) {
+        redirect('/login');
+      }
     }
     throw error;
   }

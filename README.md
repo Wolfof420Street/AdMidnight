@@ -33,6 +33,7 @@ Flutter Mobile App                    ├── AdAuction
 ### Prerequisites
 - Node.js 20+
 - pnpm 9+
+- pnpm@8.6.7
 - Docker + Docker Compose
 - Flutter 3.x (for mobile only)
 

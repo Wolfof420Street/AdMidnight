@@ -13,6 +13,11 @@ ensure-env:
 	  echo "Created .env from .env.example"; \
 	fi
 
+	@if [ ! -f .env.local ]; then \
+	  touch .env.local; \
+	  echo "Created empty .env.local"; \
+	fi
+
 install:
 	pnpm install
 
@@ -45,10 +50,11 @@ docker-up:
 docker-down:
 	$(DOCKER_COMPOSE) down
 
-migrate:
+migrate: ensure-env
 	@$(ENV_LOADER) pnpm --filter @admidnight/api exec -- prisma migrate deploy
 
-demo:
+
+demo: ensure-env
 	@set -euo pipefail; \
 	$(ENV_LOADER) \
 	INDEXER_NETWORK_ID=undeployed; export INDEXER_NETWORK_ID; \
@@ -97,6 +103,6 @@ e2e:
 	@echo "Run e2e demo script"
 	node scripts/e2e-demo.js
 
-deploy-contracts:
+deploy-contracts: ensure-env
 	@echo "Deploying contracts via packages/zk-circuits"
 	@$(ENV_LOADER) pnpm --filter @admidnight/zk-circuits run deploy

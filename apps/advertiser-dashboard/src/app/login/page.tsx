@@ -28,7 +28,11 @@ function LoginPageContent(): JSX.Element {
 
     try {
       await clientApiClient.login({ email, password });
-      router.replace(nextPath);
+      // Sanitize nextPath to prevent open redirects: allow only single-slash internal paths
+      const isSafeInternalPath = (p: string) =>
+        p.startsWith('/') && !p.startsWith('//') && !/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(p);
+      const target = isSafeInternalPath(nextPath) ? nextPath : '/';
+      router.replace(target);
     } catch (loginError) {
       if (loginError instanceof DashboardApiError && loginError.status === 401) {
         setError('Invalid advertiser credentials. The session cookie was not issued.');

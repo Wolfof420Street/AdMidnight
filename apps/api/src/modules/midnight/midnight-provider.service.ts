@@ -73,6 +73,7 @@ export class MidnightProviderService implements OnModuleInit, OnModuleDestroy {
     if (typeof raw === 'string') {
       return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
     }
-    return this.config.get<string>('NODE_ENV', 'development') !== 'production';
+    // Require explicit opt-in via MIDNIGHT_DEV_MODE; do not infer from NODE_ENV
+    return false;
   }
 }

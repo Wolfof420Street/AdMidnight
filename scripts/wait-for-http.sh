@@ -18,14 +18,26 @@ done
 
 echo "Waiting for HTTP endpoint $URL (timeout ${TIMEOUT}s)"
 START=$(date +%s)
+
+# Validate TIMEOUT is a positive integer
+if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]]; then
+  echo "Invalid --timeout value: ${TIMEOUT}. Must be a positive integer." >&2
+  exit 2
+fi
+
+# Per-request timeout (seconds) to avoid single curl hanging; keep small relative to overall TIMEOUT
+REQUEST_TIMEOUT=5
+if [[ "$TIMEOUT" -lt "$REQUEST_TIMEOUT" ]]; then
+  REQUEST_TIMEOUT="$TIMEOUT"
+fi
 while true; do
   if [[ "$POST_GRAPHQL" == true ]]; then
-    if curl -fsS -X POST -H 'Content-Type: application/json' --data '{"query":"{ __typename }"}' "$URL" >/dev/null 2>&1; then
+    if curl -fsS -X POST -H 'Content-Type: application/json' --data '{"query":"{ __typename }"}' --max-time "$REQUEST_TIMEOUT" "$URL" >/dev/null 2>&1; then
       echo "$URL is available"
       exit 0
     fi
   else
-    if curl -fsS "$URL" >/dev/null 2>&1; then
+    if curl -fsS --max-time "$REQUEST_TIMEOUT" "$URL" >/dev/null 2>&1; then
       echo "$URL is available"
       exit 0
     fi
